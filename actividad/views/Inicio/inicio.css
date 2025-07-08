@@ -1,0 +1,26 @@
+/* Fondo con degradado moderno */
+.login-background {
+  min-height: 100vh;
+  background: linear-gradient(to right, #0f172a, #4ade80);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Contenedor del formulario */
+.form-container {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 1.5rem;
+  box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Título con color destacado */
+.highlight {
+  color: #4ade80;
+  font-weight: bold;
+}

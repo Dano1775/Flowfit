@@ -1,0 +1,91 @@
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f8f9fa;
+  overflow-x: hidden;
+}
+
+.hero-section {
+  min-height: 100vh;
+  background: linear-gradient(to right, #1F2937, #4ADE80);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  padding-top: 120px;
+  padding-bottom: 60px;
+  clip-path: ellipse(130% 100% at 50% 0%);
+}
+
+.resaltado {
+  background-color: #10B981;
+  color: #1F2937;
+  padding: 0.2em 0.6em;
+  border-radius: 8px;
+  font-family: monospace;
+  display: inline-block;
+  margin-top: 0.4rem;
+}
+
+.stats-section {
+  background-color: #ffffff;
+  color: #1F2937;
+  padding: 80px 0;
+}
+
+.stats-section .card {
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  transition: all 0.3s ease-in-out;
+  height: 100%;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+}
+
+.stats-section .card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.btn-success {
+  background-color: #4ADE80;
+  border: none;
+  transition: 0.3s ease;
+}
+
+.btn-success:hover {
+  background-color: #3AC47D;
+  transform: scale(1.05);
+}
+
+.btn-outline-light {
+  transition: 0.3s ease;
+}
+
+.btn-outline-light:hover {
+  background-color: white;
+  color: #1F2937;
+  transform: scale(1.05);
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+  color: #4ADE80 !important;
+}
+
+.footer {
+  background-color: #1F2937;
+  border-top: 1px solid #4ADE80;
+  color: white;
+}
+
+[data-aos] {
+  transition-property: transform, opacity !important;
+}
