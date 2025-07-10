@@ -1,97 +1,96 @@
 <?php
 session_start();
 if (!isset($_SESSION["id"]) || $_SESSION["perfil"] !== "Usuario") {
-  header("Location: ../../Inicio/inicio.html");
+  header("Location: ../Inicio/inicio.html");
   exit;
 }
 
-include "../../models/conexion.php";
-$usuario_id = $_SESSION["id"];
+$primerNombre = explode(' ', $_SESSION["nombre"] ?? "Usuario")[0];
+$idUsuario = $_SESSION["id"];
 
-// Traer todas las rutinas asignadas al usuario
-$sql = "SELECT r.id, r.nombre, r.descripcion 
-        FROM rutina r
-        INNER JOIN rutina_asignada ra ON r.id = ra.rutina_id
-        WHERE ra.usuario_id = ?";
-$stmt = $conexion->prepare($sql);
-$stmt->execute([$usuario_id]);
+require_once "../../models/conexion.php";
+
+$stmt = $conexion->prepare("
+  SELECT r.id, r.nombre, r.descripcion, ra.fecha_asignacion
+  FROM rutina_asignada ra
+  JOIN rutina r ON ra.rutina_id = r.id
+  WHERE ra.usuario_id = ?
+");
+$stmt->execute([$idUsuario]);
 $rutinas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Mis Rutinas - FlowFit</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rutinas asignadas - FlowFit</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body {
-      background-color: #f9f9f9;
-      font-family: 'Segoe UI', sans-serif;
-      padding: 40px;
-    }
-    .card {
-      margin-bottom: 30px;
-      border-radius: 1rem;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-    }
-    .card-title {
-      color: #1F2937;
-    }
-    .card-text {
-      color: #4B5563;
-    }
-    .ejercicio-img {
-      width: 100px;
-      height: 100px;
-      object-fit: cover;
-      border-radius: 0.5rem;
-    }
-  </style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="usuario.css">
 </head>
-<body>
-  <div class="container">
-    <h2 class="text-success mb-4 text-center">Rutinas asignadas</h2>
+<body class="rutina-bg d-flex flex-column">
 
-    <?php if (count($rutinas) === 0): ?>
-      <div class="alert alert-info text-center">No tienes rutinas asignadas aún.</div>
-    <?php endif; ?>
-
-    <?php foreach ($rutinas as $rutina): ?>
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title"><?= htmlspecialchars($rutina["nombre"]) ?></h5>
-          <p class="card-text"><?= htmlspecialchars($rutina["descripcion"]) ?></p>
-
-          <!-- Mostrar ejercicios -->
-          <div class="row">
-            <?php
-              $sqlEj = "SELECT e.* 
-                        FROM ejercicio e
-                        INNER JOIN rutina_ejercicio re ON e.id = re.ejercicio_id
-                        WHERE re.rutina_id = ?";
-              $stmtEj = $conexion->prepare($sqlEj);
-              $stmtEj->execute([$rutina["id"]]);
-              $ejercicios = $stmtEj->fetchAll(PDO::FETCH_ASSOC);
-            ?>
-            <?php foreach ($ejercicios as $ej): ?>
-              <div class="col-md-6 col-lg-4 mb-3">
-                <div class="border rounded p-3 h-100 bg-light">
-                  <h6 class="text-dark"><?= htmlspecialchars($ej["nombre"]) ?></h6>
-                  <p class="mb-1"><strong>Sets:</strong> <?= $ej["sets"] ?></p>
-                  <p class="mb-2"><strong>Calorías:</strong> <?= $ej["calorias"] ?></p>
-                  <?php if (!empty($ej["imagen"])): ?>
-                    <img src="../../uploads/<?= htmlspecialchars($ej["imagen"]) ?>" alt="Imagen ejercicio" class="ejercicio-img">
-                  <?php else: ?>
-                    <p class="text-muted small">Sin imagen</p>
-                  <?php endif; ?>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          </div>
-        </div>
-      </div>
-    <?php endforeach; ?>
+<!-- Navbar -->
+<nav class="navbar navbar-dark bg-dark fixed-top shadow">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center" href="Usuario.php">
+      <img src="../assets/logo_flowfit.png" alt="FlowFit" height="40" class="me-2" style="border-radius: 10px;">
+      <span class="fs-4 fw-bold text-success">FlowFit</span>
+    </a>
+    <div class="profile-wrapper" id="profile-container">
+      <img src="../assets/perfil_default.png" alt="Perfil" class="profile-img" id="profileIcon">
+      <ul class="dropdown-menu-custom text-center px-2 py-3" id="profileMenu">
+        <li class="dropdown-header">Hola, <?= htmlspecialchars($primerNombre) ?></li>
+        <li><hr class="dropdown-divider my-2"></li>
+        <li><a class="dropdown-item" href="../editarperfil/editar_perfil.php">Editar perfil</a></li>
+        <li><a class="dropdown-item" href="ver_rutinas_usuario.php">Mis rutinas</a></li>
+        <li><a class="dropdown-item" href="progreso.php">Mi progreso</a></li>
+        <li><hr class="dropdown-divider my-2"></li>
+        <li><a class="dropdown-item text-danger" href="../index/index.html">Cerrar sesión</a></li>
+      </ul>
+    </div>
   </div>
+</nav>
+
+<!-- Contenido principal -->
+<main class="flex-grow-1">
+  <div class="container mt-5 pt-5">
+    <h2 class="text-success text-center mb-5">Tus rutinas asignadas, <?= htmlspecialchars($primerNombre) ?> </h2>
+    <div class="row justify-content-center g-4">
+      <?php if (count($rutinas) > 0): ?>
+        <?php foreach ($rutinas as $rutina): ?>
+          <div class="col-md-4">
+            <div class="card-custom p-4 text-white h-100 d-flex flex-column justify-content-between">
+              <div>
+                <h4 class="fw-bold text-success"><?= htmlspecialchars($rutina['nombre']) ?></h4>
+                <p><?= htmlspecialchars($rutina['descripcion']) ?></p>
+                <p class="fecha-asignacion">Asignada el <?= date('d/m/Y', strtotime($rutina['fecha_asignacion'])) ?></p>
+              </div>
+              <a href="detalle_rutina_usuario.php?id=<?= $rutina['id'] ?>" class="btn btn-glass w-100 mt-3">Ver detalles</a>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <div class="col-12 text-center">
+          <p class="text-white fs-5">No tienes rutinas asignadas por ahora.</p>
+        </div>
+      <?php endif; ?>
+    </div>
+
+    <!-- Botón para volver al panel principal -->
+    <div class="text-center mt-5">
+      <a href="Usuario.php" class="btn btn-glass">← Volver al panel principal</a>
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="footer mt-auto">
+  <p>© <?= date("Y") ?> FlowFit. Todos los derechos reservados.</p>
+  <p></p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

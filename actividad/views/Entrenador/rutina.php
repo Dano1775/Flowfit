@@ -11,7 +11,7 @@ $primerNombre = explode(' ', $_SESSION["nombre"] ?? "Usuario")[0];
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Panel Entrenador - FlowFit</title>
+  <title>Rutinas - FlowFit</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="entrenador.css">
@@ -30,7 +30,7 @@ $primerNombre = explode(' ', $_SESSION["nombre"] ?? "Usuario")[0];
       <ul class="dropdown-menu-custom text-center px-2 py-3" id="profileMenu">
         <li class="dropdown-header">Hola, <?= htmlspecialchars($primerNombre) ?></li>
         <li><hr class="dropdown-divider my-2"></li>
-        <li><a class="dropdown-item" href="../editarperfil/editar_perfil.php">Editar perfil</a></li>
+        <li><a class="dropdown-item" href="editar_perfil.php">Editar perfil</a></li>
         <li><a class="dropdown-item" href="rutina.php">Gestión de Rutinas</a></li>
         <li><a class="dropdown-item" href="ejercicios_entrenador.php">Ejercicios</a></li>
         <li><a class="dropdown-item" href="historial_asignaciones.php">Historial de asignaciones</a></li>
@@ -44,49 +44,52 @@ $primerNombre = explode(' ', $_SESSION["nombre"] ?? "Usuario")[0];
 <!-- Hero Section -->
 <section class="hero-section d-flex align-items-center justify-content-center text-center">
   <div class="container py-5 mt-4">
-    <h1 class="hero-title">Hola, <?= htmlspecialchars($primerNombre) ?></h1>
-    <p class="lead mt-2">Gestiona tus rutinas, ejercicios personalizados y usuarios asignados.</p>
-    <div class="d-flex justify-content-center gap-3 flex-wrap mt-3">
-      <a href="#panel" class="btn btn-success px-4">Ir al Panel</a>
-      <a href="https://flowfit.com/manual-entrenador" class="btn btn-outline-light px-4">Guía de Uso</a>
-    </div>
+    <h1 class="hero-title">Gestión de Rutinas</h1>
+    <p class="lead mt-2">Aquí puedes crear, asignar y editar rutinas para tus usuarios.</p>
   </div>
 </section>
 
-<!-- Panel de acciones -->
-<section class="container my-5" id="panel">
+<!-- Rutina Options -->
+<section class="container my-5">
   <div class="row g-4 justify-content-center">
 
-    <!-- Ejercicios -->
-    <div class="col-md-4 col-sm-6">
+    <!-- Crear rutina -->
+    <div class="col-md-4">
       <div class="card text-center p-4">
-        <i class="bi bi-bicycle fs-1 text-primary mb-3"></i>
-        <h5>Ejercicios</h5>
-        <p>Crea y administra ejercicios para tus rutinas.</p>
-        <a href="ejercicios_entrenador.php" class="btn btn-success mt-2">Ir a Ejercicios</a>
+        <i class="bi bi-plus-circle-dotted fs-1 text-success mb-3"></i>
+        <h5>Crear Rutina</h5>
+        <p>Diseña una rutina personalizada desde cero para tus usuarios.</p>
+        <a href="crear_rutina.php" class="btn btn-success mt-2">Ir a Crear Rutina</a>
       </div>
     </div>
 
-    <!-- Gestión de Rutinas -->
-    <div class="col-md-4 col-sm-6">
+    <!-- Ver / Editar rutina -->
+    <div class="col-md-4">
       <div class="card text-center p-4">
-        <i class="bi bi-clipboard-data fs-1 text-success mb-3"></i>
-        <h5>Gestión de Rutinas</h5>
-        <p>Crea, edita y administra tus rutinas.</p>
-        <a href="rutina.php" class="btn btn-success mt-2">Ver Rutinas</a>
+        <i class="bi bi-pencil-square fs-1 text-warning mb-3"></i>
+        <h5>Ver / Editar Rutinas</h5>
+        <p>Consulta tus rutinas existentes, edítalas o elimínalas.</p>
+        <a href="rutinas_entrenador.php" class="btn btn-success mt-2">Ver Rutinas</a>
       </div>
     </div>
 
-    <!-- Historial -->
-    <div class="col-md-4 col-sm-6">
+    <!-- Asignar rutina -->
+    <div class="col-md-4">
       <div class="card text-center p-4">
-        <i class="bi bi-journal-text fs-1 text-info mb-3"></i>
-        <h5>Historial</h5>
-        <p>Consulta el historial de rutinas asignadas.</p>
-        <a href="historial_asignaciones.php" class="btn btn-success mt-2">Ver Historial</a>
+        <i class="bi bi-person-check fs-1 text-primary mb-3"></i>
+        <h5>Asignar Rutinas</h5>
+        <p>Selecciona una rutina y asígnala a uno o más usuarios fácilmente.</p>
+        <a href="asignar_rutina.php" class="btn btn-success mt-2">Asignar Rutinas</a>
       </div>
     </div>
 
+  </div>
+
+  <!-- Botón para volver al panel -->
+  <div class="text-center mt-4">
+    <a href="entrenador.php" class="btn btn-outline-secondary px-4 py-2">
+      ← Volver al panel
+    </a>
   </div>
 </section>
 
@@ -101,21 +104,24 @@ $primerNombre = explode(' ', $_SESSION["nombre"] ?? "Usuario")[0];
   </p>
 </footer>
 
+<!-- Bootstrap Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Dropdown por clic -->
 <script>
   const icon = document.getElementById('profileIcon');
   const menu = document.getElementById('profileMenu');
 
   icon?.addEventListener('click', () => {
-    menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+    menu.classList.toggle('show');
   });
 
-  document.addEventListener('click', function(event) {
-    if (!icon.contains(event.target) && !menu.contains(event.target)) {
-      menu.style.display = 'none';
+  document.addEventListener('click', (e) => {
+    if (!icon.contains(e.target) && !menu.contains(e.target)) {
+      menu.classList.remove('show');
     }
   });
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

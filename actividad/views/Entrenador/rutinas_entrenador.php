@@ -8,13 +8,15 @@ if (!isset($_SESSION["id"]) || $_SESSION["perfil"] !== "Entrenador") {
 include "../../models/conexion.php";
 $entrenador_id = $_SESSION["id"];
 
-// Obtener rutinas del entrenador
+// Obtén todas las rutinas de este entrenador
 $stmt = $conexion->prepare("SELECT * FROM rutina WHERE entrenador_id = ?");
 $stmt->execute([$entrenador_id]);
 $rutinas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Obtener catálogo completo de ejercicios para añadir desde modal
-$catalogo = $conexion->query("SELECT * FROM ejercicio_catalogo WHERE creado_por IS NULL OR creado_por = $entrenador_id")->fetchAll(PDO::FETCH_ASSOC);
+// Catálogo de ejercicios (globales y personales)
+$catalogo = $conexion->query(
+  "SELECT * FROM ejercicio_catalogo WHERE creado_por IS NULL OR creado_por = $entrenador_id"
+)->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -23,170 +25,272 @@ $catalogo = $conexion->query("SELECT * FROM ejercicio_catalogo WHERE creado_por 
   <meta charset="UTF-8" />
   <title>Mis Rutinas - FlowFit</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- Bootstrap y Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <style>
-    body.dark-mode {
-      background-color: #181a1b;
-      color: #f1f1f1;
-    }
-    .main-content {
-      padding: 90px 20px 30px;
-    }
-    .modo-toggle {
-      position: fixed;
-      top: 10px;
-      right: 15px;
-      z-index: 1001;
-    }
-    .card:hover {
-      transform: scale(1.02);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-    }
-    .card {
-      transition: all 0.3s ease;
-    }
-  </style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- CSS unificado de Entrenador -->
+  <link rel="stylesheet" href="entrenador.css">
 </head>
-<body class="bg-light">
+<body class="d-flex flex-column min-vh-100">
 
-<nav class="navbar navbar-dark bg-dark fixed-top">
-  <div class="container-fluid">
-    <a class="navbar-brand d-flex align-items-center" href="entrenador.php">
-      <img src="../assets/logo_flowfit.png" alt="FlowFit" height="40" class="me-2">
-      <span class="fs-4 text-success fw-bold">FlowFit</span>
-    </a>
-  </div>
-</nav>
-
-<div class="modo-toggle">
-  <button id="toggleModo" class="btn btn-sm btn-outline-dark">🌓</button>
-</div>
-
-<div class="container main-content">
-  <h2 class="text-center mb-4">Rutinas creadas</h2>
-
-  <div class="row">
-    <?php foreach ($rutinas as $rutina): ?>
-      <?php
-      $stmt = $conexion->prepare("SELECT ec.*, re.sets, re.repeticiones
-        FROM rutina_ejercicio re
-        JOIN ejercicio_catalogo ec ON re.ejercicio_id = ec.id
-        WHERE re.rutina_id = ?");
-      $stmt->execute([$rutina["id"]]);
-      $ejercicios = $stmt->fetchAll(PDO::FETCH_ASSOC);
-      ?>
-      <div class="col-md-6 mb-4">
-        <div class="card p-3">
-          <h5 class="fw-bold"><?= htmlspecialchars($rutina["nombre"]) ?></h5>
-          <p><?= nl2br(htmlspecialchars($rutina["descripcion"])) ?></p>
-          <ul class="list-group mb-3">
-            <?php foreach ($ejercicios as $e): ?>
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <?= $e["nombre"] ?>
-                <span class="badge bg-primary rounded-pill"><?= $e["sets"] ?>x<?= $e["repeticiones"] ?></span>
-              </li>
-            <?php endforeach; ?>
-          </ul>
-          <div class="d-flex justify-content-between">
-            <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalEditar<?= $rutina["id"] ?>">Editar</button>
-            <a href="../../controllers/rutinas_controller.php?accion=eliminar&id=<?= $rutina["id"] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar esta rutina?')">Eliminar</a>
-          </div>
-        </div>
+  <!-- Navbar -->
+  <nav class="navbar navbar-dark fixed-top shadow">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center" href="entrenador.php">
+        <img src="../assets/logo_flowfit.png" alt="FlowFit" height="40" class="me-2" style="border-radius: 10px;">
+        <span class="fs-4 fw-bold text-success">FlowFit</span>
+      </a>
+      <div class="profile-wrapper">
+        <img src="../assets/perfil_default.png" alt="Perfil" class="profile-img" id="profileIcon" onclick="toggleDropdown()">
+        <ul class="dropdown-menu-custom text-center px-2 py-3" id="dropdownMenu">
+          <li class="dropdown-header fw-semibold text-success fs-6">
+            Hola, <?= explode(' ', $_SESSION["nombre"] ?? 'Entrenador')[0] ?>
+          </li>
+          <li><hr class="dropdown-divider my-2"></li>
+          <li><a class="dropdown-item" href="../editarperfil/editar_perfil.php">Editar perfil</a></li>
+          <li><a class="dropdown-item" href="rutinas_entrenador.php">Mis Rutinas</a></li>
+          <li><a class="dropdown-item" href="ejercicios_entrenador.php">Ejercicios</a></li>
+          <li><a class="dropdown-item" href="asignar_rutina.php">Asignar Rutinas</a></li>
+          <li><a class="dropdown-item" href="historial_asignaciones.php">Historial</a></li>
+          <li><hr class="dropdown-divider my-2"></li>
+          <li><a class="dropdown-item text-danger" href="../index/index.html">Cerrar sesión</a></li>
+        </ul>
       </div>
+    </div>
+  </nav>
 
-      <!-- Modal edición -->
-      <div class="modal fade" id="modalEditar<?= $rutina["id"] ?>" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-          <form action="../../controllers/rutinas_controller.php" method="POST" class="modal-content">
-            <div class="modal-header bg-success text-white">
-              <h5 class="modal-title">Editar rutina</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <!-- Contenido principal -->
+  <div class="container-fluid main-wrapper mt-5 pt-5 text-white">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="fw-bold text-success">Rutinas creadas</h2>
+      <a href="rutina.php" class="btn btn-outline-light">← Volver</a>
+    </div>
+
+    <?php if (empty($rutinas)): ?>
+      <div class="alert alert-info bg-dark border-success text-success text-center">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        Aún no has creado rutinas. Usa el botón flotante para crear tu primera rutina.
+      </div>
+    <?php else: ?>
+      <div class="row">
+        <?php foreach ($rutinas as $rutina): ?>
+          <?php
+          // Para cada rutina, obtén sus ejercicios y evitamos duplicados
+          $stmt2 = $conexion->prepare("
+            SELECT ec.*, re.sets, re.repeticiones
+            FROM rutina_ejercicio re
+            JOIN ejercicio_catalogo ec ON re.ejercicio_id = ec.id
+            WHERE re.rutina_id = ?
+          ");
+          $stmt2->execute([$rutina["id"]]);
+          $ejercicios = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+          $ids_existentes = array_column($ejercicios, "id");
+          ?>
+          <div class="col-md-6 mb-4">
+            <div class="card rutina-card p-3">
+              <h5 class="fw-bold text-success"><?= htmlspecialchars($rutina["nombre"]) ?></h5>
+              <p class="card-text"><?= nl2br(htmlspecialchars($rutina["descripcion"])) ?></p>
+              <ul class="list-group mb-3">
+                <?php foreach ($ejercicios as $e): ?>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <?= htmlspecialchars($e["nombre"]) ?>
+                    <span class="badge bg-success rounded-pill"><?= $e["sets"] ?>×<?= $e["repeticiones"] ?></span>
+                  </li>
+                <?php endforeach; ?>
+              </ul>
+              <div class="d-flex justify-content-between">
+                <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalEditar<?= $rutina["id"] ?>">Editar</button>
+                <a href="../../controllers/entrenador_controllers/rutinas_controller.php?accion=eliminar&id=<?= $rutina["id"] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar esta rutina?')">Eliminar</a>
+              </div>
             </div>
-            <div class="modal-body">
-              <input type="hidden" name="accion" value="editar">
-              <input type="hidden" name="rutina_id" value="<?= $rutina["id"] ?>">
+          </div>
 
-              <div class="mb-3">
-                <label>Nombre</label>
-                <input type="text" name="nombre" class="form-control" value="<?= htmlspecialchars($rutina["nombre"]) ?>" required>
-              </div>
-              <div class="mb-3">
-                <label>Descripción</label>
-                <textarea name="descripcion" class="form-control"><?= htmlspecialchars($rutina["descripcion"]) ?></textarea>
-              </div>
-
-              <h6 class="mt-4">Ejercicios actuales</h6>
-              <?php foreach ($ejercicios as $i => $e): ?>
-                <div class="border rounded p-3 mb-3">
-                  <input type="hidden" name="ejercicios[<?= $i ?>][id]" value="<?= $e["id"] ?>">
-                  <div class="d-flex justify-content-between">
-                    <strong><?= $e["nombre"] ?></strong>
-                  </div>
-                  <div class="row mt-2">
-                    <div class="col">
-                      <label>Sets</label>
-                      <input type="number" name="ejercicios[<?= $i ?>][sets]" value="<?= $e["sets"] ?>" class="form-control" required>
-                    </div>
-                    <div class="col">
-                      <label>Reps</label>
-                      <input type="number" name="ejercicios[<?= $i ?>][reps]" value="<?= $e["repeticiones"] ?>" class="form-control" required>
-                    </div>
-                  </div>
+          <!-- Modal edición -->
+          <div class="modal fade" id="modalEditar<?= $rutina["id"] ?>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-fullscreen-lg-down modal-xl modal-dialog-scrollable">
+              <form action="../../controllers/entrenador_controllers/rutinas_controller.php" method="POST" class="modal-content">
+                <div class="modal-header bg-success text-white">
+                  <h5 class="modal-title">Editar rutina</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-              <?php endforeach; ?>
+                <div class="modal-body">
+                  <input type="hidden" name="accion" value="editar">
+                  <input type="hidden" name="rutina_id" value="<?= $rutina["id"] ?>">
 
-              <hr>
-              <h6>Añadir más ejercicios</h6>
-              <div class="row">
-                <?php foreach ($catalogo as $e): ?>
-                  <div class="col-md-4 mb-3">
-                    <div class="card h-100">
-                      <img src="/Flowfit/actividad/ejercicio_image_uploads/<?= $e["creado_por"] ? "user_uploads/" : "" ?><?= $e["imagen"] ?>" class="card-img-top" style="height: 150px; object-fit: contain;">
-                      <div class="card-body">
+                  <!-- Nombre y descripción -->
+                  <div class="mb-3">
+                    <label class="form-label">Nombre</label>
+                    <input type="text" name="nombre" class="form-control" value="<?= htmlspecialchars($rutina["nombre"]) ?>" required>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Descripción</label>
+                    <textarea name="descripcion" class="form-control"><?= htmlspecialchars($rutina["descripcion"]) ?></textarea>
+                  </div>
+
+                  <!-- Ejercicios actuales -->
+                  <h6 class="text-white">Ejercicios actuales</h6>
+                  <?php foreach ($ejercicios as $i => $e): ?>
+                    <div class="border rounded p-3 mb-3 bg-dark">
+                      <input type="hidden" name="ejercicios[<?= $i ?>][id]" value="<?= $e["id"] ?>">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <strong class="text-white"><?= htmlspecialchars($e["nombre"]) ?></strong>
                         <div class="form-check">
-                          <input type="checkbox" class="form-check-input" name="nuevos_ejercicios[]" value="<?= $e["id"] ?>" id="nuevo<?= $rutina["id"] ?>_<?= $e["id"] ?>">
-                          <label class="form-check-label fw-bold" for="nuevo<?= $rutina["id"] ?>_<?= $e["id"] ?>"><?= $e["nombre"] ?></label>
+                          <input type="checkbox" class="form-check-input" name="eliminar_ejercicios[]" value="<?= $e["id"] ?>" id="del<?= $rutina["id"] ?>_<?= $e["id"] ?>">
+                          <label for="del<?= $rutina["id"] ?>_<?= $e["id"] ?>" class="form-check-label text-danger">Eliminar</label>
                         </div>
-                        <div class="row mt-2">
-                          <div class="col">
-                            <input type="number" name="nuevos_sets[<?= $e["id"] ?>]" placeholder="Sets" class="form-control" min="1">
-                          </div>
-                          <div class="col">
-                            <input type="number" name="nuevos_reps[<?= $e["id"] ?>]" placeholder="Reps" class="form-control" min="1">
-                          </div>
+                      </div>
+                      <div class="row mt-2">
+                        <div class="col">
+                          <label class="form-label">Sets</label>
+                          <input type="number" name="ejercicios[<?= $i ?>][sets]" value="<?= $e["sets"] ?>" class="form-control" required>
+                        </div>
+                        <div class="col">
+                          <label class="form-label">Reps</label>
+                          <input type="number" name="ejercicios[<?= $i ?>][reps]" value="<?= $e["repeticiones"] ?>" class="form-control" required>
                         </div>
                       </div>
                     </div>
+                  <?php endforeach; ?>
+
+                  <hr class="border-success">
+
+                  <!-- Añadir ejercicios -->
+                  <h6 class="text-success">Añadir más ejercicios</h6>
+                  <input type="text" class="form-control mb-3" id="busqueda<?= $rutina["id"] ?>" placeholder="🔍 Buscar ejercicios...">
+
+                  <!-- Ejercicios de FlowFit -->
+                  <h6 class="text-success">Ejercicios de FlowFit</h6>
+                  <div class="row" id="flowfit<?= $rutina["id"] ?>">
+                    <?php
+                    $hay_flowfit = false;
+                    foreach ($catalogo as $e):
+                      if ($e["creado_por"] !== null || in_array($e["id"], $ids_existentes)) continue;
+                      $hay_flowfit = true;
+                    ?>
+                      <div class="col-md-4 mb-3 ejercicio-card" data-nombre="<?= strtolower($e["nombre"]) ?>">
+                        <div class="card h-100">
+                          <img src="../../ejercicio_image_uploads/<?= $e["imagen"] ?>" class="card-img-top">
+                          <div class="card-body">
+                            <div class="form-check mb-2">
+                              <input class="form-check-input ejercicio-check" type="checkbox" name="nuevos_ejercicios[]" value="<?= $e["id"] ?>" id="nuevo<?= $rutina["id"] ?>_<?= $e["id"] ?>">
+                              <label class="form-check-label fw-bold" for="nuevo<?= $rutina["id"] ?>_<?= $e["id"] ?>"><?= htmlspecialchars($e["nombre"]) ?></label>
+                            </div>
+                            <div class="row mt-2">
+                              <div class="col">
+                                <input type="number" name="sets[<?= $e["id"] ?>]" placeholder="Sets" class="form-control" min="1" disabled>
+                              </div>
+                              <div class="col">
+                                <input type="number" name="reps[<?= $e["id"] ?>]" placeholder="Reps" class="form-control" min="1" disabled>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    <?php endforeach; ?>
+                    <?php if (!$hay_flowfit): ?>
+                      <p class="text-muted fst-italic">No hay ejercicios de FlowFit disponibles.</p>
+                    <?php endif; ?>
                   </div>
-                <?php endforeach; ?>
-              </div>
+
+                  <!-- Ejercicios personales -->
+                  <h6 class="text-primary mt-4">Ejercicios creados por ti</h6>
+                  <div class="row" id="entrenador<?= $rutina["id"] ?>">
+                    <?php
+                    $hay_personales = false;
+                    foreach ($catalogo as $e):
+                      if ($e["creado_por"] !== $entrenador_id || in_array($e["id"], $ids_existentes)) continue;
+                      $hay_personales = true;
+                    ?>
+                      <div class="col-md-4 mb-3 ejercicio-card" data-nombre="<?= strtolower($e["nombre"]) ?>">
+                        <div class="card h-100">
+                          <img src="../../ejercicio_image_uploads/user_uploads/<?= $e["imagen"] ?>" class="card-img-top">
+                          <div class="card-body">
+                            <div class="form-check mb-2">
+                              <input class="form-check-input ejercicio-check" type="checkbox" name="nuevos_ejercicios[]" value="<?= $e["id"] ?>" id="nuevoU<?= $rutina["id"] ?>_<?= $e["id"] ?>">
+                              <label class="form-check-label fw-bold" for="nuevoU<?= $rutina["id"] ?>_<?= $e["id"] ?>"><?= htmlspecialchars($e["nombre"]) ?></label>
+                            </div>
+                            <div class="row mt-2">
+                              <div class="col">
+                                <input type="number" name="sets[<?= $e["id"] ?>]" placeholder="Sets" class="form-control" min="1" disabled>
+                              </div>
+                              <div class="col">
+                                <input type="number" name="reps[<?= $e["id"] ?>]" placeholder="Reps" class="form-control" min="1" disabled>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    <?php endforeach; ?>
+                    <?php if (!$hay_personales): ?>
+                      <p class="text-muted fst-italic">No tienes ejercicios personales disponibles.</p>
+                    <?php endif; ?>
+                  </div>
+                </div>
+
+                <div class="modal-footer">
+                  <button type="submit" class="btn btn-success">Guardar cambios</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+              </form>
             </div>
-            <div class="modal-footer">
-              <button type="submit" class="btn btn-success">Guardar cambios</button>
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            </div>
-          </form>
-        </div>
+          </div>
+        <?php endforeach; ?>
       </div>
-    <?php endforeach; ?>
-  </div>
+    <?php endif; ?>
 
-  <div class="text-center mt-4">
-    <a href="entrenador.php" class="btn btn-outline-secondary">← Volver al panel</a>
-  </div>
-</div>
+  <!-- Botón flotante -->
+  <a href="crear_rutina.php" class="btn btn-success btn-flotante">
+    <i class="bi bi-plus-lg me-1"></i> Crear Rutina
+  </a>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-  // Modo oscuro con localStorage
-  const toggleBtn = document.getElementById("toggleModo");
-  if (localStorage.getItem("modoOscuro") === "true") {
-    document.body.classList.add("dark-mode");
-  }
-  toggleBtn.addEventListener("click", () => {
-    document.body.classList.toggle("dark-mode");
-    localStorage.setItem("modoOscuro", document.body.classList.contains("dark-mode"));
-  });
-</script>
+  <!-- Footer -->
+  <footer class="footer mt-auto text-center">
+    <p>© <?= date("Y") ?> FlowFit. Todos los derechos reservados.</p>
+    <p>
+      Síguenos en 
+      <a href="#" class="text-success">Instagram</a> · 
+      <a href="#" class="text-success">Facebook</a> · 
+      <a href="#" class="text-success">X</a>
+    </p>
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    // Toggle dropdown perfil
+    function toggleDropdown() {
+      const dd = document.getElementById('dropdownMenu');
+      dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+    }
+    document.addEventListener('click', e => {
+      const dd = document.getElementById('dropdownMenu');
+      if (!dd.contains(e.target) && e.target.id !== 'profileIcon') {
+        dd.style.display = 'none';
+      }
+    });
+
+    // Filtro de búsqueda en modales
+    document.querySelectorAll("input[id^='busqueda']").forEach(input => {
+      input.addEventListener("input", () => {
+        const id = input.id.replace('busqueda','');
+        const filtro = input.value.toLowerCase();
+        document.querySelectorAll(`#flowfit${id} .ejercicio-card, #entrenador${id} .ejercicio-card`)
+          .forEach(card => card.style.display = card.dataset.nombre.includes(filtro) ? 'block' : 'none');
+      });
+    });
+
+    // QOL: sólo habilitar sets/reps si el ejercicio está chequeado
+    document.querySelectorAll('.ejercicio-check').forEach(check => {
+      const id = check.value;
+      const setInput = document.querySelector(`[name="sets[${id}]"]`);
+      const repInput = document.querySelector(`[name="reps[${id}]"]`);
+      setInput.disabled = true;
+      repInput.disabled = true;
+      check.addEventListener('change', () => {
+        setInput.disabled = !check.checked;
+        repInput.disabled = !check.checked;
+      });
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

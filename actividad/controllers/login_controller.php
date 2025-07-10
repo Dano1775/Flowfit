@@ -37,9 +37,12 @@ if (
 }
 
 // Login exitoso
+// Login exitoso
 session_start();
 $_SESSION["id"] = $respuesta["id"];
 $_SESSION["perfil"] = $respuesta["perfil_usuario"];
+$_SESSION["nombre"] = $respuesta["nombre"]; // esta linea esta para que cuando se meta a su perfil el dropdown y el menu principal muestren el nombre
+
 
 // Redirige según perfil, con rutas corregidas
 switch ($_SESSION["perfil"]) {
