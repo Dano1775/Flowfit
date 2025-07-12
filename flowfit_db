@@ -1,0 +1,140 @@
+-- Crear base de datos
+CREATE DATABASE IF NOT EXISTS flowfit_db;
+USE flowfit_db;
+
+-- Crear tabla de usuarios
+CREATE TABLE IF NOT EXISTS usuario (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    numero_documento VARCHAR(20) NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    telefono VARCHAR(20) NOT NULL,
+    correo VARCHAR(100) NOT NULL UNIQUE,
+    clave VARCHAR(100) NOT NULL, -- clave en texto plano
+    perfil_usuario ENUM('Usuario', 'Administrador', 'Entrenador', 'Nutricionista') NOT NULL,
+    estado CHAR(1) NOT NULL DEFAULT 'A'
+) ENGINE=InnoDB;
+
+-- Tabla de ejercicios creados por entrenadores o por la plataforma
+CREATE TABLE IF NOT EXISTS ejercicio_catalogo (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    imagen VARCHAR(255),
+    creado_por INT DEFAULT NULL,
+    FOREIGN KEY (creado_por) REFERENCES usuario(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- Tabla de rutinas
+CREATE TABLE IF NOT EXISTS rutina (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    entrenador_id INT,
+    FOREIGN KEY (entrenador_id) REFERENCES usuario(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- Relación rutina-ejercicio (muchos a muchos) con sets y repeticiones
+CREATE TABLE IF NOT EXISTS rutina_ejercicio (
+    rutina_id INT,
+    ejercicio_id INT,
+    sets INT DEFAULT 1,
+    repeticiones INT DEFAULT 1,
+    PRIMARY KEY (rutina_id, ejercicio_id),
+    FOREIGN KEY (rutina_id) REFERENCES rutina(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (ejercicio_id) REFERENCES ejercicio_catalogo(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- Rutinas asignadas a usuarios
+CREATE TABLE IF NOT EXISTS rutina_asignada (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    rutina_id INT,
+    usuario_id INT,
+    fecha_asignacion DATE DEFAULT CURRENT_DATE,
+    FOREIGN KEY (rutina_id) REFERENCES rutina(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- Insertar registros de prueba
+INSERT INTO usuario (numero_documento, nombre, telefono, correo, clave, perfil_usuario, estado) VALUES
+('1001', 'Admin Test', '1111111111', 'admin@flowfit.com', 'admin123', 'Administrador', 'A'),
+('2001', 'Entrenador Test', '2222222222', 'entrenador@flowfit.com', 'entrenador123', 'Entrenador', 'A'),
+('3001', 'Nutricionista Test', '3333333333', 'nutricionista@flowfit.com', 'nutri123', 'Nutricionista', 'A'),
+('4001', 'Usuario Test', '4444444444', 'usuario@flowfit.com', 'usuario123', 'Usuario', 'A');
+
+-- Insertar ejercicios del catálogo
+INSERT INTO ejercicio_catalogo (nombre, descripcion, imagen, creado_por) VALUES
+('Sentadillas',
+'Ponte de pie con los pies al ancho de los hombros. Flexiona las rodillas empujando las caderas hacia atrás como si fueras a sentarte. Baja hasta que tus muslos estén paralelos al suelo o más abajo, manteniendo la espalda recta y el abdomen contraído. Luego sube empujando desde los talones. No dejes que tus rodillas pasen la punta de los pies.',
+'sentadillas.jpg', NULL),
+
+('Flexiones de pecho',
+'Colócate en posición de plancha con las manos ligeramente más anchas que los hombros. Mantén el cuerpo alineado de pies a cabeza. Baja el cuerpo flexionando los codos hasta que el pecho casi toque el suelo, manteniendo los codos a unos 45° del torso. Empuja hacia arriba hasta extender completamente los brazos.',
+'flexiones_pecho.jpg', NULL),
+
+('Abdominales crunch',
+'Acuéstate boca arriba con las rodillas flexionadas y los pies apoyados en el suelo. Coloca las manos detrás de la cabeza sin jalar el cuello. Eleva el torso contrayendo el abdomen hasta que los omóplatos se despeguen del suelo. Baja lentamente sin descansar por completo.',
+'abdominales_crunch.jpg', NULL),
+
+('Plancha frontal',
+'Colócate boca abajo apoyado sobre los antebrazos y las puntas de los pies. Mantén el cuerpo en línea recta desde los hombros hasta los tobillos. Contrae el abdomen, activa glúteos y mantén la posición el mayor tiempo posible sin bajar la cadera ni levantarla.',
+'plancha_frontal.jpg', NULL),
+
+('Zancadas',
+'De pie, da un paso largo hacia adelante con una pierna. Flexiona ambas rodillas bajando el cuerpo hasta que la rodilla trasera casi toque el suelo. La rodilla delantera debe estar alineada con el tobillo. Empuja hacia atrás para volver a la posición inicial y alterna la pierna.',
+'zancadas.jpg', NULL),
+
+('Mountain climbers',
+'Adopta la posición de plancha alta con los brazos extendidos. Lleva una rodilla al pecho rápidamente y luego alterna con la otra, como si estuvieras corriendo en el lugar. Mantén el abdomen firme y evita que las caderas se eleven demasiado.',
+'mountain_climbers.jpg', NULL),
+
+('Burpees',
+'Desde una posición de pie, baja a una sentadilla y coloca las manos en el suelo. Lanza los pies hacia atrás en posición de plancha. Realiza una flexión de pecho (opcional), luego regresa los pies al frente y salta explosivamente hacia arriba con los brazos extendidos. Aterriza y repite.',
+'burpees.jpg', NULL),
+
+('Puente de glúteos',
+'Acuéstate boca arriba con las rodillas flexionadas y los pies apoyados al ancho de cadera. Eleva las caderas contrayendo los glúteos hasta formar una línea recta desde los hombros hasta las rodillas. Mantén unos segundos arriba y baja lentamente sin apoyar completamente.',
+'puente_gluteos.jpg', NULL),
+
+('Saltos en tijera',
+'Desde posición erguida, salta abriendo las piernas lateralmente mientras elevas los brazos por encima de la cabeza. Al caer, vuelve a la posición inicial y repite rápidamente. Mantén un ritmo constante y suave para evitar impacto excesivo en las rodillas.',
+'saltos_tijera.jpg', NULL),
+
+('Curl de bíceps con mancuerna',
+'De pie con una mancuerna en cada mano, brazos estirados a los lados y palmas hacia adelante. Flexiona los codos para elevar las mancuernas hacia los hombros sin mover los codos. Contrae los bíceps en la parte alta y baja lentamente controlando el movimiento.',
+'curl_biceps.jpg', NULL),
+
+('Press militar',
+'Sentado o de pie, sujeta dos mancuernas o barra a la altura de los hombros. Empuja hacia arriba extendiendo los brazos completamente sin bloquear los codos. Baja controladamente. Mantén la espalda recta y el abdomen firme durante todo el movimiento.',
+'press_militar.jpg', NULL),
+
+('Extensión de tríceps',
+'Sujeta una mancuerna con ambas manos por detrás de la cabeza, codos flexionados. Extiende los codos llevando la mancuerna hacia arriba hasta estirar completamente los brazos. Vuelve lentamente a la posición inicial. Mantén los codos estables y pegados al cuerpo.',
+'extension_triceps.jpg', NULL),
+
+('Jump Squats',
+'Realiza una sentadilla profunda y desde esa posición, salta explosivamente hacia arriba. Aterriza suavemente flexionando las rodillas y repite. Mantén el control del movimiento en todo momento para evitar lesiones.',
+'jump_squats.jpg', NULL);
+
+
+
+
+-- Visualizar usuarios
+SELECT * FROM usuario;
+SELECT * FROM rutina_ejercicio;
+SELECT * FROM rutina;
+SELECT * FROM rutina_asignada;
+SELECT * FROM ejercicio_catalogo;
+
+drop database flowfit_db;
+
+DELETE FROM usuarios WHERE id IN (7, 8);
